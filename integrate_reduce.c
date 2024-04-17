@@ -118,7 +118,7 @@ int main(int argc, char** argv){
     if (process_Rank == 0) {
         printf("Result: %f\n", global_sum);
     }
-    
+    free(divisions);
     MPI_Finalize();
     return 0;
 }
