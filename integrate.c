@@ -79,9 +79,7 @@ int main(int argc, char** argv){
         double end = 1;
         int* divisions = (int *)malloc(num_procs * sizeof(int));
         if(divisions == NULL){
-            if(process_Rank == 0){
-                printf("brak pamieci");
-            }
+            printf("brak pamieci");
             MPI_Finalize();
             return -1;
         }
