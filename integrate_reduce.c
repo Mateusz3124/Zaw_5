@@ -53,34 +53,58 @@ double func2(double x) { return 2 * x; }
 double func3(double x) { return sin(x); }
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        printf("argumenty: <ile podzialow> <numer funkcji od 0 do 2>\n");
-        return -1;
-    }
-    int num_numbers = atoi(argv[1]);
-    int type = atoi(argv[2]);
-    if (num_numbers <= 0 || type < 0 || type > 2) {
-        printf("argumenty: <ile podzialow> <numer funkcji od 0 do 2>\n");
-        return -1;
-    }
     int process_Rank, num_procs;
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &process_Rank);
+    if (argc < 5) {
+        if (process_Rank == 0) {
+            printf("argumenty: <poczatek> <koniec> <ile podzialow> <numer funkcji od 0 do 2>\n");
+        }
+        return -1;
+    }
+    int num_numbers = atoi(argv[3]);
+    int type = atoi(argv[4]);
+    if (num_numbers <= 0 || type < 0 || type > 2) {
+        if (process_Rank == 0) {
+            printf("argumenty: <poczatek> <koniec> <ile podzialow> <numer funkcji od 0 do 2>\n");
+        }
+        return -1;
+    }
     if (num_procs > num_numbers) {
-        printf("liczba podzialow jest mniejsza od liczby procesow\n");
+        if (process_Rank == 0) {
+            printf("liczba podzialow jest mniejsza od liczby procesow\n");
+        }
+        MPI_Finalize();
+        return -1;
+    }
+    double begin = atof(argv[1]);
+    double end = atof(argv[2]);
+    if (begin == end) {
+        if (process_Rank == 0) {
+            printf("poczatek i koniec taki sam\n");
+        }
+        MPI_Finalize();
+        return -1;
+    }
+    if (begin > end) {
+        if (process_Rank == 0) {
+            printf("poczatek jest wiekszy od konca\n");
+        }
         MPI_Finalize();
         return -1;
     }
     if (process_Rank == 0) {
-        double begin = 0.0;
-        double end = 1.0;
         int* divisions = (int*)malloc(num_procs * sizeof(int));
+        int error = 0;
         if (divisions == NULL) {
-            printf("brak pamieci");
+            printf("brak pamieci\n");
+            error = -1;
+            MPI_Bcast(&error, 1, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Finalize();
             return -1;
         }
+        MPI_Bcast(&error, 1, MPI_INT, 0, MPI_COMM_WORLD);
         int size_of_division = num_numbers / num_procs;
         for (int i = 0; i < num_procs; i++) {
             divisions[i] = size_of_division;
@@ -92,7 +116,7 @@ int main(int argc, char** argv) {
             counter++;
         }
         double step = (end - begin) / (double)num_numbers;
-        double start_process = 0.0;
+        double start_process = begin;
         for (int i = 0; i < num_procs; i++) {
             double end_process = start_process + divisions[i] * step;
             double data[3];
@@ -104,9 +128,14 @@ int main(int argc, char** argv) {
         }
         free(divisions);
     }
+    int error;
+    MPI_Bcast(&error, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (error == -1) {
+        MPI_Finalize();
+        return -1;
+    }
     double data[3];
     MPI_Recv(&data, 3, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
     double result;
     if (type == 0) {
         result = integrate(&func, data[0], data[1], data[2]);
