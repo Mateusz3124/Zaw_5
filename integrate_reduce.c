@@ -67,16 +67,14 @@ int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &process_Rank);
-
-    double begin = 0.0;
-    double end = 1.0;
-
     if (num_procs > num_numbers) {
         printf("liczba podzialow jest mniejsza od liczby procesow\n");
         MPI_Finalize();
         return -1;
     }
     if (process_Rank == 0) {
+        double begin = 0.0;
+        double end = 1.0;
         int* divisions = (int*)malloc(num_procs * sizeof(int));
         if (divisions == NULL) {
             printf("brak pamieci");
